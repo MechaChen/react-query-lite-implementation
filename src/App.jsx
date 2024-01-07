@@ -11,7 +11,7 @@ import { ReactQueryDevtools } from 'react-query/devtools';
   //   ReactQueryDevtools,
   // } from './utils/react-query-lite';
 
-  import './App.css';
+import './App.css';
 
 const queryClient = new QueryClient();
 
@@ -37,13 +37,24 @@ function App() {
 }
 
 // Our custom query hooks
-function usePosts(postId) {
+function usePosts() {
   return useQuery({
     queryKey: 'posts',
     queryFn: async () => {
       await sleep(1000);
       const { data } = await axios.get(`https://jsonplaceholder.typicode.com/posts`);
       return data.slice(0, 5);
+    },
+  });
+}
+
+function usePost(postId) {
+  return useQuery({
+    queryKey: ['post', postId],
+    queryFn: async () => {
+      await sleep(1000);
+      const { data } = await axios.get(`https://jsonplaceholder.typicode.com/posts/${postId}`);
+      return data;
     },
   });
 }
@@ -63,11 +74,12 @@ function Posts({ setPostId }) {
           ? <span>Error: {postQuery.error.message}</span>
           : (
             <>
-              <ul>
+              <ul className="posts__list">
                 {postQuery.data.map(post => (
                   <li
                     key={post.id}
                     onClick={() => setPostId(post.id)}
+                    className="posts__item"
                   >
                     {post.title}
                   </li>
@@ -85,12 +97,12 @@ function Posts({ setPostId }) {
 
 
 function Post({ postId, setPostId }) {
-  const postQuery = usePosts(postId);
+  const postQuery = usePost(postId);
 
   return (
     <div>
       <div>
-        <div onClick={() => setPostId(-1)}>Back</div>
+        <div className="post__back" onClick={() => setPostId(-1)}>⬅️ Back</div>
       </div>
       <div>
         {!postId || postQuery.status === 'loading'

@@ -1,0 +1,17 @@
+.posts__list {
+  list-style: none;
+  padding-left: 10px;
+}
+
+.posts__item {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 10px;
+  box-shadow: 5px 3px 3px #ccc;
+  cursor: pointer;
+}
+
+.post__back {
+  cursor: pointer;
+}
