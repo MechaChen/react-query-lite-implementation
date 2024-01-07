@@ -1,15 +1,15 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
-import { ReactQueryDevtools } from 'react-query/devtools';
+// import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
+// import { ReactQueryDevtools } from 'react-query/devtools';
 
 
-// import {
-  //   QueryClient,
-  //   QueryClientProvider,
-  //   useQuery,
-  //   ReactQueryDevtools,
-  // } from './utils/react-query-lite';
+import {
+    QueryClient,
+    QueryClientProvider,
+    useQuery,
+    ReactQueryDevtools,
+  } from './utils/react-query-lite';
 
 import './App.css';
 
@@ -69,7 +69,7 @@ function Posts({ setPostId }) {
     <div>
       <h1>Posts</h1>
       {postQuery.status === 'loading'
-        ? <div>Loading posts</div>
+        ? <div>Loading...</div>
         : postQuery.status === 'error'
           ? <span>Error: {postQuery.error.message}</span>
           : (
