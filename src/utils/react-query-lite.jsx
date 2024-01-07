@@ -19,17 +19,26 @@ export function useQuery() {
 
 function createQuery({ queryKey, queryFn }) {
     let query = {
+        promise: null,
+        subscribers: [],
         state: {
             status: 'loading',
             isFetching: true,
             data: undefined,
             error: undefined,
             // 避免重複觸發 (deduppling)，如果有 queryFn 正在執行，就不要再執行一次
-            promise: null,
+        },
+        subscribe: (subscriber) => {
+            query.subscribers.push(subscriber);
+            
+            return () => {
+                query.subscribers = query.subscribers.filter((s) => s !== subscriber);
+            }
         },
         setState: (updater) => {
             // updater 類似 reducer，用來改變 state
             query.state = updater(query.state);
+            query.subscribers.forEach((subscriber) => subscriber.notify());
         },
         fetch: () => {
             if (!query.promise) {
