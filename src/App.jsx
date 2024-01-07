@@ -1,29 +1,123 @@
-import './App.css';
+import { useState } from 'react';
+import axios from 'axios';
+import { QueryClient, QueryClientProvider, useQuery } from 'react-query';
+import { ReactQueryDevtools } from 'react-query/devtools';
+
+
+// import {
+  //   QueryClient,
+  //   QueryClientProvider,
+  //   useQuery,
+  //   ReactQueryDevtools,
+  // } from './utils/react-query-lite';
+
+  import './App.css';
+
+const queryClient = new QueryClient();
+
+// Our App and 'router'
 
 function App() {
+  const [postId, setPostId] = useState(-1);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src="Octocat.png" className="App-logo" alt="logo" />
-        <p>
-          GitHub Codespaces <span className="heart">♥️</span> React
-        </p>
-        <p className="small">
-          Edit <code>src/App.jsx</code> and save to reload.
-        </p>
-        <p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-        </p>
-      </header>
+    <QueryClientProvider client={queryClient}>
+      <div className="App">
+        {
+          postId > -1 ? (
+            <Post postId={postId} setPostId={setPostId} />
+            ) : (
+            <Posts setPostId={setPostId} />
+          )
+        }
+      </div>
+      <ReactQueryDevtools />
+    </QueryClientProvider>
+  );
+}
+
+// Our custom query hooks
+function usePosts(postId) {
+  return useQuery({
+    queryKey: 'posts',
+    queryFn: async () => {
+      await sleep(1000);
+      const { data } = await axios.get(`https://jsonplaceholder.typicode.com/posts`);
+      return data.slice(0, 5);
+    },
+  });
+}
+
+
+// Our components
+
+function Posts({ setPostId }) {
+  const postQuery = usePosts();
+
+  return (
+    <div>
+      <h1>Posts</h1>
+      {postQuery.status === 'loading'
+        ? <div>Loading posts</div>
+        : postQuery.status === 'error'
+          ? <span>Error: {postQuery.error.message}</span>
+          : (
+            <>
+              <ul>
+                {postQuery.data.map(post => (
+                  <li
+                    key={post.id}
+                    onClick={() => setPostId(post.id)}
+                  >
+                    {post.title}
+                  </li>
+                ))}
+              </ul>
+              <div>
+                {postQuery.isFetching ? 'Updating in background...' : ' '}
+              </div>
+            </>
+          )
+      }
     </div>
   );
 }
+
+
+function Post({ postId, setPostId }) {
+  const postQuery = usePosts(postId);
+
+  return (
+    <div>
+      <div>
+        <div onClick={() => setPostId(-1)}>Back</div>
+      </div>
+      <div>
+        {!postId || postQuery.status === 'loading'
+          ? <div>Loading...</div>
+          : postQuery.status === 'error'
+            ? <span>Error: {postQuery.error.message}</span>
+            : (
+              <>
+                <h1>{postQuery.data.title}</h1>
+                <p>{postQuery.data.body}</p>
+                <div>
+                  {postQuery.isFetching ? 'Updating in background...' : ' '}
+                </div>
+              </>
+            )
+        }
+      </div>
+    </div>
+  );
+}
+
+
+// Utilities
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 
 export default App;
