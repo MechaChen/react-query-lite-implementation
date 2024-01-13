@@ -28,27 +28,6 @@ export class QueryClient {
     }
 };
 
-export function useQuery({ queryKey, queryFn }) {
-    const client = useContext(context);
-
-    const [, forceRender] = useReducer((state) => state + 1, 0);
-
-    const observerRef = useRef(null);
-
-    if (!observerRef.current) {
-        observerRef.current = createQueryObserver(client, {
-            queryKey,
-            queryFn,
-        });
-    }
-
-    useEffect(() => {
-        return observerRef.current.subscribe(forceRender);
-    }, []);
-
-    return observerRef.current.getResult();
-};
-
 function createQuery(client, { queryKey, queryFn }) {
     let query = {
         queryKey,
@@ -97,6 +76,28 @@ function createQuery(client, { queryKey, queryFn }) {
 
     return query;
 }
+
+
+export function useQuery({ queryKey, queryFn }) {
+    const client = useContext(context);
+
+    const [, forceRender] = useReducer((state) => state + 1, 0);
+
+    const observerRef = useRef(null);
+
+    if (!observerRef.current) {
+        observerRef.current = createQueryObserver(client, {
+            queryKey,
+            queryFn,
+        });
+    }
+
+    useEffect(() => {
+        return observerRef.current.subscribe(forceRender);
+    }, []);
+
+    return observerRef.current.getResult();
+};
 
 // 跟 useQuery 結合
 function createQueryObserver(client, { queryKey, queryFn }) {
