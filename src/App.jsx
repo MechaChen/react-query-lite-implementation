@@ -5,11 +5,11 @@ import axios from 'axios';
 
 
 import {
-    QueryClient,
-    QueryClientProvider,
-    useQuery,
-    ReactQueryDevtools,
-  } from './utils/react-query-lite';
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+  ReactQueryDevtools,
+} from './utils/react-query-lite';
 
 import './App.css';
 

@@ -6,7 +6,27 @@ export function QueryClientProvider({ children, client }) {
     return <context.Provider value={client}>{children}</context.Provider>;
 };
 
-export class QueryClient {};
+// 需要一個地放 queries，這時候就需要 QueryClient
+export class QueryClient {
+    constructor() {
+        this.queries = [];
+    }
+
+    // 取得特定的 query
+    getQuery = (options) => {
+        // 1. 利用 queryKey 找到對應的 query
+        const queryHash = JSON.stringify(options.queryKey);
+        let query = this.queries.find((query) => query.queryHash === queryHash);
+
+        // 2. 如果沒有，就建立一個新的 query
+        if (!query) {
+            query = createQuery(this, options);
+            this.queries.push(query);
+        }
+
+        return query;
+    }
+};
 
 export function useQuery() {
     return {
@@ -17,8 +37,10 @@ export function useQuery() {
     }
 };
 
-function createQuery({ queryKey, queryFn }) {
+function createQuery(client, { queryKey, queryFn }) {
     let query = {
+        queryKey,
+        queryHash: JSON.stringify(queryKey),
         promise: null,
         subscribers: [],
         state: {
@@ -43,31 +65,16 @@ function createQuery({ queryKey, queryFn }) {
         fetch: () => {
             if (!query.promise) {
                 query.promise = (async () => {
-                    query.setState((state) => ({
-                        ...state,
-                        isFetching: true,
-                        error: undefined
-                    }));
+                    query.setState((state) => ({ ...state, isFetching: true, error: undefined }));
     
                     try {
                         const data = await queryFn();
-                        query.setState((state) => ({
-                            ...state,
-                            status: 'success',
-                            data,
-                        }));
+                        query.setState((state) => ({ ...state, status: 'success', data }));
                     } catch (error) {
-                        query.setState((state) => ({
-                            ...state,
-                            status: 'error',
-                            error,
-                        }));
+                        query.setState((state) => ({ ...state, status: 'error', error }));
                     } finally {
                         query.promise = null;
-                        query.setState((state) => ({
-                            ...state,
-                            isFetching: false,
-                        }));
+                        query.setState((state) => ({ ...state, isFetching: false }));
                     }
                 })()
             }
