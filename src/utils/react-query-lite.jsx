@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext, useRef, useReducer, useEffect } from 'react';
 
 const context = React.createContext();
 
@@ -28,13 +28,25 @@ export class QueryClient {
     }
 };
 
-export function useQuery() {
-    return {
-        status: 'loading',
-        isFetching: true,
-        data: undefined,
-        error: undefined,
+export function useQuery({ queryKey, queryFn }) {
+    const client = useContext(context);
+
+    const [, forceRender] = useReducer((state) => state + 1, 0);
+
+    const observerRef = useRef(null);
+
+    if (!observerRef.current) {
+        observerRef.current = createQueryObserver(client, {
+            queryKey,
+            queryFn,
+        });
     }
+
+    useEffect(() => {
+        return observerRef.current.subscribe(forceRender);
+    }, []);
+
+    return observerRef.current.getResult();
 };
 
 function createQuery(client, { queryKey, queryFn }) {
@@ -84,6 +96,28 @@ function createQuery(client, { queryKey, queryFn }) {
     }
 
     return query;
+}
+
+// 跟 useQuery 結合
+function createQueryObserver(client, { queryKey, queryFn }) {
+    const query = client.getQuery({ queryKey, queryFn });
+
+    const observer = {
+        notify: () => {},
+        getResult: () => query.state,
+        // 在呼叫 useQuery 的時候，就會執行這個函式
+        subscribe: (callback) => {
+            observer.notify = callback;
+            const unsubscribe = query.subscribe(observer);
+
+            // 在呼叫 useQuery 的時候，自動執行 fetch
+            query.fetch();
+
+            return unsubscribe;
+        }
+    }
+
+    return observer;
 }
 
 export function ReactQueryDevtools() {
