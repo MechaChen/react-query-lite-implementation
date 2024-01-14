@@ -45,6 +45,7 @@ function usePosts() {
       const { data } = await axios.get(`https://jsonplaceholder.typicode.com/posts`);
       return data.slice(0, 5);
     },
+    staleTime: 5000,
   });
 }
 
@@ -56,6 +57,7 @@ function usePost(postId) {
       const { data } = await axios.get(`https://jsonplaceholder.typicode.com/posts/${postId}`);
       return data;
     },
+    staleTime: 5000,
   });
 }
 

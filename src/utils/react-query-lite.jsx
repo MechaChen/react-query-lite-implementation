@@ -60,7 +60,7 @@ function createQuery(client, { queryKey, queryFn }) {
     
                     try {
                         const data = await queryFn();
-                        query.setState((state) => ({ ...state, status: 'success', data }));
+                        query.setState((state) => ({ ...state, status: 'success', data, lastUpdated: Date.now() }));
                     } catch (error) {
                         query.setState((state) => ({ ...state, status: 'error', error }));
                     } finally {
@@ -78,7 +78,7 @@ function createQuery(client, { queryKey, queryFn }) {
 }
 
 
-export function useQuery({ queryKey, queryFn }) {
+export function useQuery({ queryKey, queryFn, staleTime }) {
     const client = useContext(context);
 
     const [, forceRender] = useReducer((state) => state + 1, 0);
@@ -89,6 +89,7 @@ export function useQuery({ queryKey, queryFn }) {
         observerRef.current = createQueryObserver(client, {
             queryKey,
             queryFn,
+            staleTime,
         });
     }
 
@@ -100,7 +101,7 @@ export function useQuery({ queryKey, queryFn }) {
 };
 
 // 跟 useQuery 結合
-function createQueryObserver(client, { queryKey, queryFn }) {
+function createQueryObserver(client, { queryKey, queryFn, staleTime = 0 }) {
     const query = client.getQuery({ queryKey, queryFn });
 
     const observer = {
@@ -111,10 +112,19 @@ function createQueryObserver(client, { queryKey, queryFn }) {
             observer.notify = callback;
             const unsubscribe = query.subscribe(observer);
 
-            // 在呼叫 useQuery 的時候，自動執行 fetch
-            query.fetch();
+            // 在呼叫 useQuery 的時候，執行有特定條件的 fetch
+            observer.fetch();
 
             return unsubscribe;
+        },
+        // fetch 前先檢查保留舊資料的時間 staleTime 是否過期，過期再去 fetch
+        fetch: () => {
+            if (
+                !query.state.lastUpdated
+                || Date.now() - query.state.lastUpdated > staleTime
+            ) {
+                query.fetch();
+            }
         }
     }
 
