@@ -28,12 +28,13 @@ export class QueryClient {
     }
 };
 
-function createQuery(client, { queryKey, queryFn }) {
+function createQuery(client, { queryKey, queryFn, cacheTime = 5 * 60 * 1000 }) {
     let query = {
         queryKey,
         queryHash: JSON.stringify(queryKey),
         promise: null,
         subscribers: [],
+        gcTimeout: null,
         state: {
             status: 'loading',
             isFetching: true,
@@ -43,10 +44,25 @@ function createQuery(client, { queryKey, queryFn }) {
         },
         subscribe: (subscriber) => {
             query.subscribers.push(subscriber);
-            
+
+            query.unscheduleGC();
+
             return () => {
                 query.subscribers = query.subscribers.filter((s) => s !== subscriber);
+
+                // 當此 query 沒有訂閱者時，就可以 Garbage Collection
+                if (!query.subscribers.length) {
+                    query.scheduleGC();
+                }
             }
+        },
+        scheduleGC: () => {
+            query.gcTimeout = setTimeout(() => {
+                client.queries = client.queries.filter((q) => q !== query);
+            }, cacheTime);
+        },
+        unscheduleGC: () => {
+            clearTimeout(query.gcTimeout);
         },
         setState: (updater) => {
             // updater 類似 reducer，用來改變 state
@@ -78,7 +94,7 @@ function createQuery(client, { queryKey, queryFn }) {
 }
 
 
-export function useQuery({ queryKey, queryFn, staleTime }) {
+export function useQuery({ queryKey, queryFn, staleTime, cacheTime }) {
     const client = useContext(context);
 
     const [, forceRender] = useReducer((state) => state + 1, 0);
@@ -90,6 +106,7 @@ export function useQuery({ queryKey, queryFn, staleTime }) {
             queryKey,
             queryFn,
             staleTime,
+            cacheTime,
         });
     }
 
@@ -101,8 +118,8 @@ export function useQuery({ queryKey, queryFn, staleTime }) {
 };
 
 // 跟 useQuery 結合
-function createQueryObserver(client, { queryKey, queryFn, staleTime = 0 }) {
-    const query = client.getQuery({ queryKey, queryFn });
+function createQueryObserver(client, { queryKey, queryFn, staleTime = 0, cacheTime }) {
+    const query = client.getQuery({ queryKey, queryFn, cacheTime });
 
     const observer = {
         notify: () => {},
